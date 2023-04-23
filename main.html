@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Blockchain Stuff</title>
+<style>
+
+
+</style>
+</head>
+<body>
+<h1>Backend nodes:</h1>
+<button type="button" id="node_refresh" onclick="refresh_nodes()">Refresh nodes!</button>
+<br/>
+<label for="nodes">Choose a node:</label>
+<select name="nodes" id="nodes">
+	<option value="volvo">Volvo</option>
+	<option value="saab">Saab</option>
+	<option value="opel">Opel</option>
+	<option value="audi">Audi</option>
+</select>
+
+<h1>Users</h1>
+<h2>View Users</h2>
+<button type="button" id="users_refresh" onclick="refresh_users()">Refresh users!</button>
+<table id="user_list">
+ <tr>
+	 <th>Username</th>
+	 <th>Decryption (public) key</th>
+ </tr>
+ <tr>
+	 <td>Alfreds Futterkiste</td>
+	 <td>qeyrwouwireyldrsghliasdlkgjdsg</td>
+ </tr>
+ <tr>
+	 <td>Maria Anders</td>
+	 <td>tqweuiotqeioputqpiouwte</td>
+ </tr>
+</table>
+<h2>Add User</h2>
+<label for="username">Choose a username:</label>
+<input type="text" id="username" name="username"/>
+<br/>
+<label for="public_key">Choose a public key:</label>
+<textarea id="public_key" name="public_key" rows="4" cols="50">
+</textarea>
+<br/>
+<button type="button" id="user_add" onclick="add_user()">Add user!</button>
+<h1>Elections</h1>
+<h2>View Elections</h2>
+<button type="button" id="elections_refresh" onclick="refresh_elections()">Refresh elections!</button>
+<table id="election_list">
+ <tr>
+	 <th>Election name</th>
+	 <th>Election prompt</th>
+	 <th>User</th>
+	 <th>Yes count</th>
+	 <th>No count</th>
+ </tr>
+ <tr>
+	 <th>Election name</th>
+	 <th>Election prompt</th>
+	 <th>User</th>
+	 <th>Yes count</th>
+	 <th>No count</th>
+ </tr>
+ <tr>
+	 <th>Election name</th>
+	 <th>Election prompt</th>
+	 <th>User</th>
+	 <th>Yes count</th>
+	 <th>No count</th>
+ </tr>
+</table>
+<h2>Create Election</h2>
+<label for="election_name">Choose an election name:</label>
+<input type="text" id="election_name" name="election_name"/>
+<br/>
+<label for="election_prompt">Choose an election prompt:</label>
+<input type="text" id="election_prompt" name="election_prompt"/>
+<br/>
+<label for="election_username">Choose an election username:</label>
+<input type="text" id="election_username" name="election_username"/>
+<br/>
+<label for="election_private_key">Choose an election private-key:</label>
+<textarea id="election_private_key" name="election_private_key" rows="4" cols="50">
+</textarea>
+<br/>
+<button type="button" id="election_submit" onclick="submit_election()">Submit election!</button>
+<h1>Cast vote</h1>
+<label for="election_vote_name">Choose an election name:</label>
+<input type="text" id="election_vote_name" name="election_vote_name"/>
+<br/>
+<label for="election_vote_username">Choose an election username:</label>
+<input type="text" id="election_vote_username" name="election_vote_username"/>
+<br/>
+<label for="election_vote_private_key">Choose an election private-key:</label>
+<textarea id="election_vote_private_key" name="election_vote_private_key" rows="4" cols="50">
+</textarea>
+<br/>
+<input type="radio" id="Yes" name="vote_value" value="Yes">
+<label for="Yes">Yes</label><br/>
+<input type="radio" id="No" name="vote_value" value="No">
+<label for="No">No</label><br/>
+<button type="button" id="election_vote_submit" onclick="submit_vote()">Submit vote!</button>
+<script>
+
+async function removeAllChildren(node) {
+	while (node.firstChild) {
+		node.removeChild(node.lastChild);
+	}
+}
+
+async function getCurrentNodes() {
+	let endpoint = "https://ransom.isis.vanderbilt.edu/alex_richardson_no_touchy/blockchain_project/get_current_nodes.php";
+	let node_name = document.getElementById("nodes").value;
+  const response = await fetch(endpoint, { method: 'GET'});
+  return await response.json();
+}
+
+async function refresh_nodes() {
+	let node_entries = await getCurrentNodes();
+	let node_box = document.getElementById("nodes");
+	await removeAllChildren(node_box);
+	for (const entry of node_entries) {
+		new_option = document.createElement("option");
+		new_option.value = entry;
+		new_option.innerHTML = entry;
+		node_box.appendChild(new_option);
+		node_box.value = entry;
+	}
+}
+
+async function getCurrentUsers() {
+	let endpoint = "https://ransom.isis.vanderbilt.edu/alex_richardson_no_touchy/blockchain_project/get_current_users.php?";
+	let node_name = document.getElementById("nodes").value;
+  const response = await fetch(endpoint + new URLSearchParams({
+    node_name: node_name
+	}), { method: 'GET'});
+  return await response.json();
+}
+
+async function generateUserTableEntry(table, username, decryption_key) {
+	let row = document.createElement("tr");
+	let column1 = document.createElement("th");
+	let column2 = document.createElement("th");
+	column1.innerHTML = username;
+	column2.innerHTML = decryption_key;
+	row.appendChild(column1);
+	row.appendChild(column2);
+	table.appendChild(row);
+}
+
+async function refresh_users() {
+	let current_users = await getCurrentUsers();
+	let user_table = document.getElementById("user_list");
+	await removeAllChildren(user_table);
+	await generateUserTableEntry(user_table, "Username", "Decryption (public) key");
+	for (const entry of current_users) {
+		await generateUserTableEntry(user_table, entry.name, entry.public_key);
+	}
+}
+
+async function AddUserRequest(username, public_key) {
+	let endpoint = "https://ransom.isis.vanderbilt.edu/alex_richardson_no_touchy/blockchain_project/add_user.php?";
+	let node_name = document.getElementById("nodes").value;
+  const response = await fetch(endpoint + new URLSearchParams({
+    username: username,
+    public_key: public_key,
+		node_name: node_name
+  }), { method: 'GET'});
+  const result_json = await response.json();
+	console.log(result_json);
+	return result_json["response"];
+}
+
+async function add_user() {
+	let username_tag = document.getElementById("username");
+	let public_key_tag = document.getElementById("public_key");
+	let username_text = username_tag.value;
+	let public_key_text = public_key_tag.value;
+	let result = await AddUserRequest(username_text, public_key_text);
+	console.log(username_text);
+	console.log(public_key_text);
+	console.log(result);
+	if (result) {
+		console.log("User addition successful!");
+	}
+	else {
+		console.log("User addition failed!");
+	}
+}
+
+async function getCurrentElections() {
+	let endpoint = "https://ransom.isis.vanderbilt.edu/alex_richardson_no_touchy/blockchain_project/get_current_elections.php?";
+	let node_name = document.getElementById("nodes").value;
+  const response = await fetch(endpoint + new URLSearchParams({
+    node_name: node_name
+	}), { method: 'GET'});
+  return await response.json();
+}
+
+async function generateElectionTableEntry(table, name, prompt, user, yays, nays) {
+	let row = document.createElement("tr");
+	let column1 = document.createElement("th");
+	let column2 = document.createElement("th");
+	let column3 = document.createElement("th");
+	let column4 = document.createElement("th");
+	let column5 = document.createElement("th");
+
+	column1.innerHTML = name;
+	column2.innerHTML = prompt;
+	column3.innerHTML = user;
+	column4.innerHTML = yays;
+	column5.innerHTML = nays;
+	row.appendChild(column1);
+	row.appendChild(column2);
+	row.appendChild(column3);
+	row.appendChild(column4);
+	row.appendChild(column5);
+	table.appendChild(row);
+}
+
+async function refresh_elections() {
+	let elections = await getCurrentElections();
+	let election_table = document.getElementById("election_list");
+	await removeAllChildren(election_table);
+	await generateElectionTableEntry(election_table, "Election name", "Election prompt", "User", "Yes count", "No count");
+	for (const entry of elections) {
+			await generateElectionTableEntry(election_table, entry.name, entry.prompt, entry.user, entry.yays.toString(), entry.nays.toString());
+	}
+}
+
+async function AddElectionRequest(name, prompt, username, private_key) {
+	return false;
+}
+
+async function submit_election() {
+	let election_name_tag = document.getElementById("election_name");
+	let election_prompt_tag = document.getElementById("election_prompt");
+	let election_username_tag = document.getElementById("election_username");
+	let election_private_key_tag = document.getElementById("election_private_key");
+
+	let election_name = election_name_tag.value;
+	let election_prompt = election_prompt_tag.value;
+	let election_username = election_username_tag.value;
+	let election_private_key = election_private_key_tag.value;
+
+	console.log(election_name, election_prompt, election_username, election_private_key);
+	if (await AddElectionRequest(election_name, election_prompt, election_username, election_private_key)) {
+		console.log("Election addition successful!");
+	}
+	else {
+		console.log("Election addition failed!");
+	}
+}
+
+async function AddVoteRequest(name, username, private_key, vote) {
+	return false;
+}
+
+async function submit_vote() {
+	let vote_election_name_tag = document.getElementById("election_vote_name");
+	let vote_election_username_tag = document.getElementById("election_vote_username");
+	let vote_election_private_key_tag = document.getElementById("election_vote_private_key");
+	let vote_election_choices = document.getElementsByName("vote_value");
+	let vote_choice = null;
+	for (const entry of vote_election_choices) {
+		if (entry.checked) {
+			vote_choice = entry.value;
+		}
+	}
+	let vote_election_name = vote_election_name_tag.value;
+	let vote_election_username = vote_election_username_tag.value;
+	let vote_election_private_key = vote_election_private_key_tag.value;
+	console.log(vote_election_name, vote_election_username, vote_election_private_key, vote_choice);
+	if (await AddVoteRequest(vote_election_name, vote_election_username, vote_election_private_key, vote_choice)) {
+		console.log("Vote addition successful!");
+	}
+	else {
+		console.log("Vote addition failed!");
+	}
+}
+
+</script>
+
+</body>
+</html>
