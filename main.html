@@ -95,10 +95,10 @@
 <textarea id="election_vote_private_key" name="election_vote_private_key" rows="4" cols="50">
 </textarea>
 <br/>
-<input type="radio" id="Yes" name="vote_value" value="Yes">
-<label for="Yes">Yes</label><br/>
-<input type="radio" id="No" name="vote_value" value="No">
-<label for="No">No</label><br/>
+<input type="radio" id="Yes" name="vote_value" value="yays">
+<label for="yays">Yes</label><br/>
+<input type="radio" id="No" name="vote_value" value="nays">
+<label for="nays">No</label><br/>
 <button type="button" id="election_vote_submit" onclick="submit_vote()">Submit vote!</button>
 <script>
 
@@ -123,6 +123,59 @@ async function sha256(message) {
     // convert bytes to hex string
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     return hashHex;
+}
+
+async function str2ab(str) {
+  const buf = new ArrayBuffer(str.length);
+  const bufView = new Uint8Array(buf);
+  for (let i = 0, strLen = str.length; i < strLen; i++) {
+    bufView[i] = str.charCodeAt(i);
+  }
+  return buf;
+}
+
+async function importPrivateKey(pem) {
+  // fetch the part of the PEM string between header and footer
+  const pemHeader = "-----BEGIN PRIVATE KEY-----";
+  const pemFooter = "-----END PRIVATE KEY-----";
+  const pemContents = pem.substring(
+    pemHeader.length,
+    pem.length - pemFooter.length
+  );
+	console.log(pemContents);
+  // base64 decode the string to get the binary data
+  const binaryDerString = window.atob(pemContents.replace(/\s/g, '').replace(/(\s)[ \t]+/g, '$1'));
+  // convert from a binary string to an ArrayBuffer
+  const binaryDer = await str2ab(binaryDerString);
+  const result = await window.crypto.subtle.importKey(
+    "pkcs8",
+    binaryDer,
+    {
+      name: "RSASSA-PKCS1-v1_5",
+      hash: "SHA-256",
+    },
+    true,
+    ["sign"]
+  );
+	return result;
+}
+
+function _arrayBufferToBase64( buffer ) {
+    var binary = '';
+    var bytes = new Uint8Array( buffer );
+    var len = bytes.byteLength;
+    for (var i = 0; i < len; i++) {
+        binary += String.fromCharCode( bytes[ i ] );
+    }
+    return window.btoa( binary );
+}
+
+async function sign(private_key, data) {
+	//const hash = sha256(data);
+	private_key = await importPrivateKey(private_key);
+	let data_buf = await str2ab(data);
+	const result = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", private_key, data_buf);
+	return _arrayBufferToBase64(result);
 }
 
 
@@ -172,7 +225,7 @@ async function refresh_users() {
 	await removeAllChildren(user_table);
 	await generateUserTableEntry(user_table, "Username", "Decryption (public) key");
 	for (const entry of current_users) {
-		await generateUserTableEntry(user_table, entry.name, entry.public_key);
+		await generateUserTableEntry(user_table, entry.username, entry.public_key);
 	}
 }
 
@@ -248,9 +301,7 @@ async function refresh_elections() {
 async function AddElectionRequest(name, prompt, username, private_key) {
 	let endpoint = "https://ransom.isis.vanderbilt.edu/alex_richardson_no_touchy/blockchain_project/add_election.php?";
 	let node_name = document.getElementById("nodes").value;
-	let sign = new JSEncrypt();
-	sign.setPrivateKey(private_key);
-	let signature = sign.sign(name + prompt + username, sha256, "sha256");
+	let signature = await sign(private_key, name + prompt + username);
 
   const response = await fetch(endpoint + new URLSearchParams({
     name: name,
@@ -286,9 +337,7 @@ async function submit_election() {
 async function AddVoteRequest(name, username, private_key, vote) {
 	let endpoint = "https://ransom.isis.vanderbilt.edu/alex_richardson_no_touchy/blockchain_project/add_vote.php?";
 	let node_name = document.getElementById("nodes").value;
-	let sign = new JSEncrypt();
-	sign.setPrivateKey(private_key);
-	let signature = sign.sign(name + username + vote, sha256, "sha256");
+	let signature = await sign(private_key, name + username + vote);
 
   const response = await fetch(endpoint + new URLSearchParams({
     name: name,
