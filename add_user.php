@@ -5,8 +5,16 @@ ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
 function get_all_data() {
-  $all_data = array("username" => $_GET["username"], "public_key" => $_GET["public_key"], "response" => True);
-  return $all_data;
+	$node_root = $_GET["node_name"];
+	$location = $node_root."/add_user?";
+	$args = array("username" => $_GET["username"], "public_key" => $_GET["public_key"]);
+	$url_query = $location . http_build_query($args);
+	$ch = curl_init();
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($ch, CURLOPT_URL, $url_query);
+	$result = curl_exec($ch);
+
+	return json_decode($result);
 }
 
 header("Content-Type: application/json");

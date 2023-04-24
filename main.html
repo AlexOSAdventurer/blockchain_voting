@@ -3,10 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Blockchain Stuff</title>
-<style>
-
-
-</style>
+<script src="bin/jsencrypt.min.js"></script>
 </head>
 <body>
 <h1>Backend nodes:</h1>
@@ -105,11 +102,29 @@
 <button type="button" id="election_vote_submit" onclick="submit_vote()">Submit vote!</button>
 <script>
 
+// Cribbed from stack overflow
 async function removeAllChildren(node) {
 	while (node.firstChild) {
 		node.removeChild(node.lastChild);
 	}
 }
+
+// Cribbed from stack overflow
+async function sha256(message) {
+    // encode as UTF-8
+    const msgBuffer = new TextEncoder().encode(message);
+
+    // hash the message
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+
+    // convert ArrayBuffer to Array
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+
+    // convert bytes to hex string
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+}
+
 
 async function getCurrentNodes() {
 	let endpoint = "https://ransom.isis.vanderbilt.edu/alex_richardson_no_touchy/blockchain_project/get_current_nodes.php";
@@ -170,7 +185,6 @@ async function AddUserRequest(username, public_key) {
 		node_name: node_name
   }), { method: 'GET'});
   const result_json = await response.json();
-	console.log(result_json);
 	return result_json["response"];
 }
 
@@ -232,7 +246,21 @@ async function refresh_elections() {
 }
 
 async function AddElectionRequest(name, prompt, username, private_key) {
-	return false;
+	let endpoint = "https://ransom.isis.vanderbilt.edu/alex_richardson_no_touchy/blockchain_project/add_election.php?";
+	let node_name = document.getElementById("nodes").value;
+	let sign = new JSEncrypt();
+	sign.setPrivateKey(private_key);
+	let signature = sign.sign(name + prompt + username, sha256, "sha256");
+
+  const response = await fetch(endpoint + new URLSearchParams({
+    name: name,
+    prompt: prompt,
+		username: username,
+		signature: signature,
+		node_name: node_name
+  }), { method: 'GET'});
+  const result_json = await response.json();
+	return result_json["response"];
 }
 
 async function submit_election() {
@@ -256,7 +284,21 @@ async function submit_election() {
 }
 
 async function AddVoteRequest(name, username, private_key, vote) {
-	return false;
+	let endpoint = "https://ransom.isis.vanderbilt.edu/alex_richardson_no_touchy/blockchain_project/add_vote.php?";
+	let node_name = document.getElementById("nodes").value;
+	let sign = new JSEncrypt();
+	sign.setPrivateKey(private_key);
+	let signature = sign.sign(name + username + vote, sha256, "sha256");
+
+  const response = await fetch(endpoint + new URLSearchParams({
+    name: name,
+    username: username,
+		vote: vote,
+		signature: signature,
+		node_name: node_name
+  }), { method: 'GET'});
+  const result_json = await response.json();
+	return result_json["response"];
 }
 
 async function submit_vote() {

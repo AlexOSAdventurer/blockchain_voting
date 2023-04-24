@@ -5,7 +5,8 @@ ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
 function get_all_data() {
-  $all_data = ["a", "b", "c", "SAdfasdf", "sadf"];
+  //$all_data = ["a", "b", "c", "SAdfasdf", "sadf"];
+	$all_data = ['http://ransom.isis.vanderbilt.edu:5000'];
   return $all_data;
 }
 
