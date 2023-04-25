@@ -37,7 +37,7 @@ class Blockchain:
 			new_block["state"] = json.dumps({"elections": {}, "voters": {}})
 			new_block["transition"] = json.dumps({"action": "root_block"})
 			new_block["prev_hash"] = ""
-			new_block["nonce"] = self.proof_of_work(new_block, 0)
+			self.proof_of_work(new_block, nonce=0)
 			new_block["new_hash"] = self.compute_block_hash(new_block)
 			self.rootBlockHashName = new_block["new_hash"]
 			print(f"Root blockchcain hash is {self.rootBlockHashName}")
@@ -62,7 +62,7 @@ class Blockchain:
 			if (totalZeros == numberOfZeros):
 				break
 			block["nonce"] = block["nonce"] + 1
-		print("nonce: ", nonce)
+		print("nonce: ", block["nonce"])
 
 	# Currently have to traverse the entire list to get the children.
 	def getBlockChildren(self, chain_head_hash):
