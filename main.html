@@ -277,7 +277,7 @@ async function refresh_elections() {
 	await removeAllChildren(election_table);
 	await generateElectionTableEntry(election_table, "Election name", "Election prompt", "User", "Yes count", "No count");
 	for (const entry of elections) {
-			await generateElectionTableEntry(election_table, entry.name, entry.prompt, entry.user, entry.yays.toString(), entry.nays.toString());
+			await generateElectionTableEntry(election_table, entry.name, entry.prompt, entry.username, entry.yays.toString(), entry.nays.toString());
 	}
 }
 

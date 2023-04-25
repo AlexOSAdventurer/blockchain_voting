@@ -44,7 +44,7 @@ def add_vote():
 	signature = request.args.get("signature")
 	response = verify_signature(internal_state.get_public_key(username), name + username + vote, signature) and internal_state.valid_vote(name, username, vote)
 	if (response):
-		internal_state.increment_election(name, username, vote)
+		internal_state.increment_election(name, username, vote, signature)
 	result = {"name": name, "username": username, "vote": vote, "signature": signature, "response": response}
 	return jsonify(result);
 
