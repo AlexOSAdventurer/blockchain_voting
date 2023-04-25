@@ -1,6 +1,8 @@
 
 import json
 import random
+import os
+import sqlite3
 from Crypto.Hash import SHA256
 import threading
 
@@ -31,7 +33,19 @@ class Blockchain:
 		print(f"Storing persistent data for blockchain in {self.root_folder}")
 		self.access_lock = threading.Lock()
 		self.blocks = {}
+		self.setup_database(start_new)
 		#self.rootBlockHashName = "ZGFSb290QmxvY2s=" #daRootBlock
+
+	def setup_database(self, start_new):
+		self.db_block_name = "blocks"
+		self.db_metadata_name = "metadata"
+		os.makedirs(self.root_folder, exist_ok=True)
+		self.connection = sqlite3.connect(os.path.join(self.root_folder, "database.db"))
+		if (start_new):
+			self.connection.execute(f"DROP TABLE IF EXISTS {self.db_block_name}")
+			self.connection.execute(f"DROP TABLE IF EXISTS {self.db_metadata_name}")
+		self.connection.execute(f"CREATE TABLE IF NOT EXISTS {self.db_block_name} (state TEXT, transition TEXT, prev_hash TEXT, new_hash TEXT, nonce UNSIGNED BIG INT)")
+		self.connection.execute(f"CREATE TABLE IF NOT EXISTS {self.db_metadata_name} (root_block_name TEXT)")
 		if (start_new):
 			new_block = {}
 			new_block["state"] = json.dumps({"elections": {}, "voters": {}})
@@ -42,6 +56,7 @@ class Blockchain:
 			self.rootBlockHashName = new_block["new_hash"]
 			print(f"Root blockchcain hash is {self.rootBlockHashName}")
 			self.base_commit_block(new_block)
+
 
 	def compute_block_hash(self, block):
 		current_string = (block["state"] + block["transition"] + block["prev_hash"] + str(block["nonce"])).encode()
