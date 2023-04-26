@@ -52,4 +52,4 @@ if __name__ == '__main__':
 	app.config['data_folder'] = sys.argv[1]
 	internal_state = Backend(app.config['data_folder'])
 	port = sys.argv[2]
-	app.run(debug=True, host="0.0.0.0", port=port)
+	app.run(debug=False, host="0.0.0.0", port=port)
